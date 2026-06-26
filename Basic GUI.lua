@@ -76,7 +76,7 @@ MainTab:AddButton({
     Description = "Remote Event Viewer by Ceniroso",
     Callback = function()
         loadstring(game:HttpGet(
-            "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
+            "https://raw.githubusercontent.com/MagixxzDC/Roblox-Scripts/main/Ceniroso%20Remote%20Spy.lua"
         ))()
     end
 })
