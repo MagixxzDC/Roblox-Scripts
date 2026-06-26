@@ -1,18 +1,33 @@
 local Fluent = loadstring(game:HttpGet(
-    "https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"
+    "https://github.com/dawid-scripts/Fluent/releases/download/1.1.0/main.lua"
 ))()
+--------------------------------------------------
+-- VARIABLES AND GUI SETUP
+--------------------------------------------------
+
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local infiniteJumpEnabled = false
+local guiKeybind = Enum.KeyCode.LeftControl
+local waitingForKey = false
+local keybindButton
+local keybindText = "Left Control"
 
 local Window = Fluent:CreateWindow({
-    Title = "Basic Fluent GUI",
+    Title = "Basic GUI",
     SubTitle = "by Magixxz",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
-    Theme = "Ocean",
-    MinimizeKey = Enum.KeyCode.LeftControl
+    Theme = "Ocean"
 })
 
---------------------------------------------------
+local function toggleGUI()
+    Window:Minimize()
+end
+
+-------------------------------------------
 -- HOME TAB
 --------------------------------------------------
 
@@ -24,6 +39,11 @@ local HomeTab = Window:AddTab({
 HomeTab:AddParagraph({
     Title = "Version",
     Content = "Version: V1"
+})
+
+HomeTab:AddParagraph({
+    Title = "Thank You",
+    Content = "Tysm for using my script! </3"
 })
 
 HomeTab:AddParagraph({
@@ -185,12 +205,11 @@ TeleportTab:AddButton({
         ))
     end
 })
-
+ --]]
 TeleportTab:AddParagraph({
     Title = "More Coming Soon",
     Content = "Might add more teleports soon!"
 })
---]]
 --------------------------------------------------
 -- MISC TAB
 --------------------------------------------------
@@ -221,13 +240,23 @@ MiscTab:AddSlider("JumpPower", {
     Min = 0,
     Max = 500,
     Rounding = 0
-}):OnChanged(function(Value)
-    local Character = game.Players.LocalPlayer.Character
-    if Character and Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.JumpPower = Value
+}):OnChanged(function(value)
+    local character = game.Players.LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        humanoid.UseJumpPower = true
+        humanoid.JumpPower = value
     end
 end)
 
+keybindButton = MiscTab:AddButton({
+    Title = "Set GUI Keybind",
+    Description = "Current: " .. keybindText .. " | Click then type to change",
+    Callback = function()
+        waitingForKey = true
+    end
+})
 --------------------------------------------------
 -- CREDITS TAB
 --------------------------------------------------
@@ -244,9 +273,56 @@ CreditsTab:AddParagraph({
 
 Window:SelectTab(1)
 
+local function safeKeyName(key)
+    if typeof(key) == "EnumItem" then
+        return key.Name
+    end
+    return "None"
+end
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+
+    local key = input.KeyCode
+
+    if waitingForKey then
+    local key = input.KeyCode
+
+    if key ~= Enum.KeyCode.Unknown then
+        guiKeybind = key
+        keybindText = guiKeybind.Name
+
+        Fluent:Notify({
+        Title = "GUI Key Updated",
+        Content = "Keybind set to: " .. keybindText,
+        Duration = 6
+        })
+
+        keybindButton:Destroy()
+
+        keybindButton = MiscTab:AddButton({
+            Title = "Set GUI Keybind",
+            Description = "Current: " .. keybindText .. " | Click then type to change",
+            Callback = function()
+                waitingForKey = true
+            end
+        })
+    end
+
+    waitingForKey = false
+    return
+end
+
+    -- GUI TOGGLE
+    if guiKeybind and key == guiKeybind then
+        if Window and Window.Minimize then
+            Window:Minimize()
+        end
+    end
+end)
+
 Fluent:Notify({
-    Title = "Eden Orphan Home GUI",
+    Title = "Basic GUI",
     Content = "Loaded successfully!",
     Duration = 5
 })
-
