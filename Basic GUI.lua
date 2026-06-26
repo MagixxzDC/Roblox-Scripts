@@ -9,11 +9,13 @@ local Fluent = loadstring(game:HttpGet(
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+
 local infiniteJumpEnabled = false
 local guiKeybind = Enum.KeyCode.LeftControl
 local waitingForKey = false
-local keybindButton
 local keybindText = "Left Control"
+
+local teleportEnabled = false
 
 local Window = Fluent:CreateWindow({
     Title = "Basic GUI",
@@ -87,7 +89,7 @@ MainTab:AddButton({
     Callback = function()
         local vu = game:GetService("VirtualUser")
 
-        game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        player.Idled:Connect(function()
             vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
             task.wait(1)
             vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
@@ -110,117 +112,35 @@ local TeleportTab = Window:AddTab({
     Icon = "map-pin"
 })
 
-local function Teleport(cf)
-    local Character = game.Players.LocalPlayer.Character
+local mouse = player:GetMouse()
 
-    if Character and Character:FindFirstChild("HumanoidRootPart") then
-        Character.HumanoidRootPart.CFrame = cf
+local function teleportToMouse()
+    local char = player.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local target = mouse.Hit
+    if target then
+        hrp.CFrame = CFrame.new(target.Position + Vector3.new(0, 3, 0))
     end
 end
---[[
+
 TeleportTab:AddButton({
-    Title = "TP to Orphan Home",
+    Title = "Press Q to Teleport",
+    Description = "Toggle Q teleport",
     Callback = function()
-        Teleport(CFrame.new(
-            -11.435148239135742,
-            11.846817970275879,
-            213.15394592285156
-        ))
+        teleportEnabled = not teleportEnabled
+
+        Fluent:Notify({
+            Title = "Teleport",
+            Content = "Q teleport: " .. tostring(teleportEnabled),
+            Duration = 4
+        })
     end
 })
 
-TeleportTab:AddButton({
-    Title = "TP to Inside",
-    Callback = function()
-        Teleport(CFrame.new(
-            -21.989280700683594,
-            11.946815490722656,
-            269.50103759765625
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP to Dorm",
-    Callback = function()
-        Teleport(CFrame.new(
-            24.274734497070312,
-            34.46929931640625,
-            310.9074401855469
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP to Jail",
-    Callback = function()
-        Teleport(CFrame.new(
-            -24.373502731323242,
-            34.40850067138672,
-            358.6532897949219
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP Out of Jail",
-    Callback = function()
-        Teleport(CFrame.new(
-            -41.99845504760742,
-            34.39680480957031,
-            373.0892028808594
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP to Shower",
-    Callback = function()
-        Teleport(CFrame.new(
-            -72.95027160644531,
-            8.079338073730469,
-            255.73158264160156
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP Upstairs",
-    Callback = function()
-        Teleport(CFrame.new(
-            67.47733306884766,
-            56.571800231933594,
-            336.9016418457031
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP to Kitchen",
-    Callback = function()
-        Teleport(CFrame.new(
-            58.432098388671875,
-            7.871817111968994,
-            237.25221252441406
-        ))
-    end
-})
-
-TeleportTab:AddButton({
-    Title = "TP to Playground",
-    Callback = function()
-        Teleport(CFrame.new(
-            -150.2802276611328,
-            4.882699966430664,
-            308.1795349121094
-        ))
-    end
-})
- --]]
-TeleportTab:AddParagraph({
-    Title = "More Coming Soon",
-    Content = "Might add more teleports soon!"
-})
 --------------------------------------------------
 -- MISC TAB
 --------------------------------------------------
@@ -230,6 +150,24 @@ local MiscTab = Window:AddTab({
     Icon = "settings"
 })
 
+local keybindButton
+
+local function updateKeybindButton()
+    task.defer(function()
+        if keybindButton then
+            keybindButton:Destroy()
+        end
+
+        keybindButton = MiscTab:AddButton({
+            Title = "Set GUI Keybind",
+            Description = "Current: " .. keybindText .. " | Click then type to change",
+            Callback = function()
+                waitingForKey = true
+            end
+        })
+    end)
+end
+
 MiscTab:AddSlider("WalkSpeed", {
     Title = "Walk Speed",
     Description = "Change your walk speed",
@@ -238,9 +176,10 @@ MiscTab:AddSlider("WalkSpeed", {
     Max = 500,
     Rounding = 0
 }):OnChanged(function(Value)
-    local Character = game.Players.LocalPlayer.Character
-    if Character and Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.WalkSpeed = Value
+    local Character = player.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid then
+        Humanoid.WalkSpeed = Value
     end
 end)
 
@@ -252,7 +191,7 @@ MiscTab:AddSlider("JumpPower", {
     Max = 500,
     Rounding = 0
 }):OnChanged(function(value)
-    local character = game.Players.LocalPlayer.Character
+    local character = player.Character
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 
     if humanoid then
@@ -268,6 +207,44 @@ keybindButton = MiscTab:AddButton({
         waitingForKey = true
     end
 })
+
+--------------------------------------------------
+-- KEYBIND SYSTEM
+--------------------------------------------------
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+
+    local key = input.KeyCode
+
+    if waitingForKey then
+        if key ~= Enum.KeyCode.Unknown then
+            guiKeybind = key
+            keybindText = key.Name
+
+            Fluent:Notify({
+                Title = "GUI Key Updated",
+                Content = "Keybind set to: " .. keybindText,
+                Duration = 6
+            })
+
+            updateKeybindButton()
+        end
+
+        waitingForKey = false
+        return
+    end
+
+    if guiKeybind and key == guiKeybind then
+        Window:Minimize()
+        return
+    end
+
+    if teleportEnabled and key == Enum.KeyCode.Q then
+        teleportToMouse()
+    end
+end)
+
 --------------------------------------------------
 -- CREDITS TAB
 --------------------------------------------------
@@ -283,54 +260,6 @@ CreditsTab:AddParagraph({
 })
 
 Window:SelectTab(1)
-
-local function safeKeyName(key)
-    if typeof(key) == "EnumItem" then
-        return key.Name
-    end
-    return "None"
-end
-
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-
-    local key = input.KeyCode
-
-    if waitingForKey then
-    local key = input.KeyCode
-
-    if key ~= Enum.KeyCode.Unknown then
-        guiKeybind = key
-        keybindText = guiKeybind.Name
-
-        Fluent:Notify({
-        Title = "GUI Key Updated",
-        Content = "Keybind set to: " .. keybindText,
-        Duration = 6
-        })
-
-        keybindButton:Destroy()
-
-        keybindButton = MiscTab:AddButton({
-            Title = "Set GUI Keybind",
-            Description = "Current: " .. keybindText .. " | Click then type to change",
-            Callback = function()
-                waitingForKey = true
-            end
-        })
-    end
-
-    waitingForKey = false
-    return
-end
-
-    -- GUI TOGGLE
-    if guiKeybind and key == guiKeybind then
-        if Window and Window.Minimize then
-            Window:Minimize()
-        end
-    end
-end)
 
 Fluent:Notify({
     Title = "Basic GUI",
