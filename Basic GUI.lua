@@ -1,7 +1,6 @@
 local Fluent = loadstring(game:HttpGet(
     "https://github.com/dawid-scripts/Fluent/releases/download/1.1.0/main.lua"
 ))()
-
 --------------------------------------------------
 -- VARIABLES AND GUI SETUP
 --------------------------------------------------
@@ -64,6 +63,16 @@ local MainTab = Window:AddTab({
 MainTab:AddButton({
     Title = "Infinite Yield FE Admin",
     Description = "Loads Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
+        ))()
+    end
+})
+
+MainTab:AddButton({
+    Title = "Remote Viewer",
+    Description = "Remote Event Viewer by Ceniroso",
     Callback = function()
         loadstring(game:HttpGet(
             "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
