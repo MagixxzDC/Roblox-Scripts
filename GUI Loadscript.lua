@@ -1,1 +1,0 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/MagixxzDC/Roblox-Scripts/refs/heads/main/Basic%20GUI.lua"))()
